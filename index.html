@@ -1333,14 +1333,7 @@
       updateBtns();
       updateTotalUI();
 
-      // 初始化时触发统计更新
-      FocusApp.Events.emit('focus:updated', { today: totalFocusToday, week: weekFocus });
-
-      return {
-        getState: function () { return state; },
-        getTodayFocus: function () { return totalFocusToday; },
-        getWeekFocus: function () { return weekFocus; }
-      };
+      return { getState: function () { return state; } };
     })();
 
     /* ===== TodoBoard 任务打卡 ===== */
@@ -1417,8 +1410,6 @@
           if (todo.completed) {
             li.classList.add('dropping');
             FocusApp.Notify.playSound('alarm'); // 小音效
-            // 同步到 DoneList
-            FocusApp.Events.emit('todo:completed', { text: todo.text, completedAt: todo.completedAt });
           }
           save();
           setTimeout(render, todo.completed ? 350 : 0);
@@ -1439,113 +1430,6 @@
       });
 
       render();
-    })();
-
-    /* ===== FocusStats 专注统计 ===== */
-    FocusApp.FocusStats = (function () {
-      var elStatToday = document.getElementById('statToday');
-      var elStatWeek = document.getElementById('statWeek');
-      var elWeekChart = document.getElementById('weekChart');
-      var DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
-
-      function update(data) {
-        var todayMin = (data && data.today) || FocusApp.Timer.getTodayFocus();
-        var week = (data && data.week) || FocusApp.Timer.getWeekFocus();
-        var days = week.days || [0,0,0,0,0,0,0];
-        var weekTotal = days.reduce(function (s, v) { return s + v; }, 0);
-
-        elStatToday.textContent = todayMin;
-        elStatWeek.textContent = weekTotal;
-
-        // 渲染柱状图
-        var maxVal = Math.max.apply(null, days.concat([1])); // 至少1避免除0
-        elWeekChart.innerHTML = '';
-        for (var i = 0; i < 7; i++) {
-          var pct = Math.round((days[i] / maxVal) * 100);
-          var item = document.createElement('div');
-          item.className = 'week-bar-item';
-          item.innerHTML =
-            '<div class="week-bar-val">' + days[i] + '</div>' +
-            '<div class="week-bar" style="height:' + Math.max(4, pct * 0.6) + 'px">' +
-            '<div class="week-bar-fill" style="height:100%"></div></div>' +
-            '<div class="week-bar-label">' + DAY_LABELS[i] + '</div>';
-          elWeekChart.appendChild(item);
-        }
-      }
-
-      FocusApp.Events.on('focus:updated', update);
-
-      // 初始渲染（延迟确保 Timer 已初始化）
-      setTimeout(function () { update(null); }, 100);
-
-      return { update: update };
-    })();
-
-    /* ===== DoneList 完成清单（西部木制留言板） ===== */
-    FocusApp.DoneList = (function () {
-      var elItems = document.getElementById('donelistItems');
-      var todayKey = new Date().toDateString();
-      var doneList = FocusApp.Store.get('donelist') || { date: '', items: [] };
-
-      // 日期重置：仅保留当天记录
-      if (doneList.date !== todayKey) {
-        doneList = { date: todayKey, items: [] };
-        FocusApp.Store.set('donelist', doneList);
-      }
-
-      function save() { FocusApp.Store.set('donelist', doneList); }
-
-      function escHtml(s) {
-        var d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
-      }
-
-      function fmtTime(ts) {
-        var d = new Date(ts);
-        var h = d.getHours();
-        var m = d.getMinutes();
-        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-      }
-
-      function render() {
-        elItems.innerHTML = '';
-        if (doneList.items.length === 0) {
-          elItems.innerHTML = '<div class="donelist-empty">今天还没有完成的任务哦~ 加油喵!</div>';
-          return;
-        }
-        // 按完成时间倒序
-        var sorted = doneList.items.slice().sort(function (a, b) { return b.completedAt - a.completedAt; });
-        sorted.forEach(function (item) {
-          var div = document.createElement('div');
-          div.className = 'done-item';
-          div.innerHTML =
-            '<span class="done-text">' + escHtml(item.text) + '</span>' +
-            '<span class="done-time">' + fmtTime(item.completedAt) + '</span>';
-          elItems.appendChild(div);
-        });
-      }
-
-      function addItem(text, completedAt) {
-        // 检查是否已存在（去重）
-        var exists = doneList.items.some(function (item) {
-          return item.text === text && Math.abs(item.completedAt - completedAt) < 1000;
-        });
-        if (exists) return;
-
-        doneList.items.push({ text: text, completedAt: completedAt });
-        save();
-        render();
-      }
-
-      // 监听 TodoBoard 完成事件
-      FocusApp.Events.on('todo:completed', function (data) {
-        addItem(data.text, data.completedAt);
-      });
-
-      render();
-
-      return { addItem: addItem, render: render };
     })();
 
     /* ===== Alarm 闹钟 ===== */
