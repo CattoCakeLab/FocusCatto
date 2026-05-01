@@ -1062,8 +1062,14 @@
           }
         });
 
-        // 更新小窗文字
-        FocusApp.Events.emit('timer:tick', { elapsed: now, state: state, short: fmtShort(now % 3600 < 3600 ? now : now) });
+        // 更新小窗文字 + PiP 进度
+        FocusApp.Events.emit('timer:tick', {
+          elapsed: now, state: state,
+          short: fmtShort(now % 3600 < 3600 ? now : now),
+          progEye:   Math.min(100, (cyclePos / CHECKPOINTS[0].at) * 100),
+          progWater: Math.min(100, (cyclePos / CHECKPOINTS[1].at) * 100),
+          progWalk:  Math.min(100, (cyclePos / CHECKPOINTS[2].at) * 100)
+        });
       }
 
       function start() {
@@ -1644,7 +1650,7 @@
       }
     })();
 
-    /* ===== MiniWidget 悬浮小窗 ===== */
+    /* ===== MiniWidget 悬浮小窗 (PiP 画中画 + 页内降级) ===== */
     FocusApp.MiniWidget = (function () {
       var widget = document.getElementById('miniWidget');
       var miniTimerText = document.getElementById('miniTimerText');
@@ -1652,93 +1658,188 @@
       var miniStatus = document.getElementById('miniStatus');
       var btnMinimize = document.getElementById('btnMinimize');
 
-      var isDragging = false;
-      var dragStartX, dragStartY, startLeft, startTop;
-      var dragMoved = false;
+      var pipWindow = null;
+      var pipTimerEl = null;
+      var pipStatusEl = null;
+      var pipCatEl = null;
+      var pipSupported = ('documentPictureInPicture' in window);
 
+      // 页内小窗拖拽
+      var isDragging = false, dragStartX, dragStartY, startLeft, startTop, dragMoved = false;
       var savedPos = FocusApp.Store.get('widget_pos');
-
       if (savedPos) {
         widget.style.left = savedPos.left + 'px';
         widget.style.top = savedPos.top + 'px';
-        widget.style.right = 'auto';
-        widget.style.bottom = 'auto';
+        widget.style.right = 'auto'; widget.style.bottom = 'auto';
       }
 
-      function minimize() {
+      /* -- PiP 浮窗 HTML 模板 -- */
+      var PIP_CSS = [
+        '@font-face{font-family:"Zpix";src:url("https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font@master/dist/Zpix.woff2") format("woff2");font-display:swap}',
+        '*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;image-rendering:pixelated}',
+        'body{font-family:"Zpix",monospace;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;user-select:none}',
+        'body::before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:99}',
+        '.pip-timer{font-size:28px;color:#53d769;text-shadow:0 0 12px rgba(83,215,105,.4);letter-spacing:2px;margin-bottom:6px}',
+        '.pip-status{font-size:11px;color:#00e5ff;margin-bottom:10px}',
+        '.pip-cat{position:relative;width:48px;height:48px;margin-bottom:8px}',
+        '.pip-cat .h{position:absolute;top:8px;left:8px;width:32px;height:24px;background:#53d769}',
+        '.pip-cat .el,.pip-cat .er{position:absolute;top:0;width:10px;height:12px;background:#53d769}',
+        '.pip-cat .el{left:8px}.pip-cat .er{right:8px}',
+        '.pip-cat .yl,.pip-cat .yr{position:absolute;top:16px;width:6px;height:6px;background:#1a1a2e}',
+        '.pip-cat .yl{left:14px}.pip-cat .yr{right:14px}',
+        '.pip-cat .n{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:4px;height:3px;background:#e94560}',
+        '.pip-cat .b{position:absolute;bottom:0;left:10px;width:28px;height:18px;background:#53d769;opacity:.7}',
+        '.pip-cat .t{position:absolute;bottom:4px;right:2px;width:8px;height:4px;background:#53d769;opacity:.7;border-radius:0 4px 4px 0;animation:wag 1.5s ease-in-out infinite}',
+        '@keyframes wag{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(15deg)}}',
+        '.pip-cat.breathing{animation:breathe 2s ease-in-out infinite}',
+        '@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}',
+        '.pip-cat.sleeping .yl,.pip-cat.sleeping .yr{height:2px;top:18px}',
+        '.pip-progress{display:flex;gap:8px;margin-top:6px}',
+        '.pip-prog-item{text-align:center;font-size:9px}',
+        '.pip-prog-item .icon{font-size:14px}',
+        '.pip-bar{width:50px;height:6px;background:#0f3460;border:1px solid #53d769;margin-top:2px}',
+        '.pip-bar-inner{height:100%;background:#53d769;transition:width .5s}',
+        '.pip-bar[data-t="water"] .pip-bar-inner{background:#00e5ff}',
+        '.pip-bar[data-t="walk"] .pip-bar-inner{background:#f5a623}',
+        '.pip-btn{margin-top:12px;padding:6px 14px;background:none;border:2px solid #53d769;color:#53d769;font-family:"Zpix",monospace;font-size:10px;cursor:pointer;transition:all .15s}',
+        '.pip-btn:hover{background:#53d769;color:#1a1a2e}'
+      ].join('');
+
+      var PIP_BODY = [
+        '<div class="pip-timer" id="pipTimer">00:00</div>',
+        '<div class="pip-status" id="pipStatus">空闲</div>',
+        '<div class="pip-cat breathing" id="pipCat">',
+        '  <div class="el"></div><div class="er"></div><div class="h"></div>',
+        '  <div class="yl"></div><div class="yr"></div><div class="n"></div>',
+        '  <div class="b"></div><div class="t"></div>',
+        '</div>',
+        '<div class="pip-progress">',
+        '  <div class="pip-prog-item"><div class="icon">👁️</div><div class="pip-bar" data-t="eye"><div class="pip-bar-inner" id="pipProgEye" style="width:0%"></div></div></div>',
+        '  <div class="pip-prog-item"><div class="icon">💧</div><div class="pip-bar" data-t="water"><div class="pip-bar-inner" id="pipProgWater" style="width:0%"></div></div></div>',
+        '  <div class="pip-prog-item"><div class="icon">🚶</div><div class="pip-bar" data-t="walk"><div class="pip-bar-inner" id="pipProgWalk" style="width:0%"></div></div></div>',
+        '</div>',
+        '<button class="pip-btn" id="pipBackBtn">返回主页</button>'
+      ].join('');
+
+      /* -- 打开 PiP 浮窗 -- */
+      async function openPiP() {
+        if (!pipSupported) { minimizeInPage(); return; }
+        try {
+          pipWindow = await documentPictureInPicture.requestWindow({ width: 240, height: 320 });
+          var doc = pipWindow.document;
+          doc.head.innerHTML = '<meta charset="UTF-8"><style>' + PIP_CSS + '</style>';
+          doc.body.innerHTML = PIP_BODY;
+
+          pipTimerEl  = doc.getElementById('pipTimer');
+          pipStatusEl = doc.getElementById('pipStatus');
+          pipCatEl    = doc.getElementById('pipCat');
+
+          doc.getElementById('pipBackBtn').addEventListener('click', function () {
+            closePiP(); window.focus();
+          });
+
+          pipWindow.addEventListener('pagehide', function () {
+            pipWindow = null; pipTimerEl = null; pipStatusEl = null; pipCatEl = null;
+            btnMinimize.textContent = 'PiP';
+            btnMinimize.classList.remove('pip-active');
+          });
+
+          btnMinimize.textContent = '关闭PiP';
+          btnMinimize.classList.add('pip-active');
+        } catch (e) {
+          minimizeInPage();
+        }
+      }
+
+      function closePiP() {
+        if (pipWindow) { pipWindow.close(); pipWindow = null; }
+        pipTimerEl = null; pipStatusEl = null; pipCatEl = null;
+        btnMinimize.textContent = 'PiP';
+        btnMinimize.classList.remove('pip-active');
+      }
+
+      function updatePiP(data) {
+        if (!pipWindow || !pipTimerEl) return;
+        try {
+          pipTimerEl.textContent = data.short || '00:00';
+          if (data.progEye !== undefined) {
+            var d = pipWindow.document;
+            var pe = d.getElementById('pipProgEye');
+            var pw = d.getElementById('pipProgWater');
+            var pk = d.getElementById('pipProgWalk');
+            if (pe) pe.style.width = data.progEye + '%';
+            if (pw) pw.style.width = data.progWater + '%';
+            if (pk) pk.style.width = data.progWalk + '%';
+          }
+        } catch (e) {}
+      }
+
+      function updatePiPState(state) {
+        if (!pipWindow || !pipCatEl || !pipStatusEl) return;
+        try {
+          pipCatEl.className = 'pip-cat';
+          if (state === 'running')     { pipCatEl.classList.add('breathing'); pipStatusEl.textContent = '专注中...'; }
+          else if (state === 'paused') { pipCatEl.classList.add('sleeping');  pipStatusEl.textContent = '已暂停'; }
+          else                         { pipStatusEl.textContent = '空闲'; }
+        } catch (e) {}
+      }
+
+      /* -- 页内小窗降级 -- */
+      function minimizeInPage() {
         document.body.classList.add('minimized');
         widget.classList.add('visible');
       }
-
-      function expand() {
+      function expandFromPage() {
         document.body.classList.remove('minimized');
         widget.classList.remove('visible');
       }
 
-      btnMinimize.addEventListener('click', minimize);
+      /* -- 按钮事件 -- */
+      btnMinimize.addEventListener('click', function () {
+        if (pipWindow) closePiP();
+        else openPiP();
+      });
+      btnMinimize.textContent = pipSupported ? 'PiP' : '_';
 
-      // 拖拽逻辑
+      /* -- 页内小窗拖拽 -- */
       function onStart(x, y) {
-        isDragging = true;
-        dragMoved = false;
-        dragStartX = x;
-        dragStartY = y;
-        var rect = widget.getBoundingClientRect();
-        startLeft = rect.left;
-        startTop = rect.top;
+        isDragging = true; dragMoved = false; dragStartX = x; dragStartY = y;
+        var rect = widget.getBoundingClientRect(); startLeft = rect.left; startTop = rect.top;
         widget.classList.add('dragging');
       }
-
       function onMove(x, y) {
         if (!isDragging) return;
-        var dx = x - dragStartX;
-        var dy = y - dragStartY;
+        var dx = x - dragStartX, dy = y - dragStartY;
         if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragMoved = true;
-        var newLeft = Math.max(0, Math.min(window.innerWidth - 72, startLeft + dx));
-        var newTop = Math.max(0, Math.min(window.innerHeight - 80, startTop + dy));
-        widget.style.left = newLeft + 'px';
-        widget.style.top = newTop + 'px';
-        widget.style.right = 'auto';
-        widget.style.bottom = 'auto';
+        widget.style.left = Math.max(0, Math.min(window.innerWidth - 72, startLeft + dx)) + 'px';
+        widget.style.top = Math.max(0, Math.min(window.innerHeight - 80, startTop + dy)) + 'px';
+        widget.style.right = 'auto'; widget.style.bottom = 'auto';
       }
-
       function onEnd() {
         if (!isDragging) return;
-        isDragging = false;
-        widget.classList.remove('dragging');
-        if (!dragMoved) {
-          expand();
-        } else {
-          FocusApp.Store.set('widget_pos', {
-            left: parseInt(widget.style.left),
-            top: parseInt(widget.style.top)
-          });
-        }
+        isDragging = false; widget.classList.remove('dragging');
+        if (!dragMoved) { expandFromPage(); }
+        else { FocusApp.Store.set('widget_pos', { left: parseInt(widget.style.left), top: parseInt(widget.style.top) }); }
       }
 
       widget.addEventListener('mousedown', function (e) { e.preventDefault(); onStart(e.clientX, e.clientY); });
       document.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); });
       document.addEventListener('mouseup', onEnd);
-
       widget.addEventListener('touchstart', function (e) { e.preventDefault(); var t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: false });
       document.addEventListener('touchmove', function (e) { if (isDragging) { var t = e.touches[0]; onMove(t.clientX, t.clientY); } });
       document.addEventListener('touchend', onEnd);
 
-      // 监听计时器更新
+      /* -- 同步计时器状态到 PiP 和页内小窗 -- */
       FocusApp.Events.on('timer:tick', function (data) {
         miniTimerText.textContent = data.short;
+        updatePiP(data);
       });
-
       FocusApp.Events.on('timer:state', function (state) {
         miniCat.className = 'mini-cat';
         miniStatus.textContent = '点击展开';
-        if (state === 'running') {
-          miniCat.classList.add('breathing');
-          miniStatus.textContent = '专注中';
-        } else if (state === 'paused') {
-          miniCat.classList.add('sleeping');
-          miniStatus.textContent = '已暂停';
-        }
+        if (state === 'running')     { miniCat.classList.add('breathing'); miniStatus.textContent = '专注中'; }
+        else if (state === 'paused') { miniCat.classList.add('sleeping');  miniStatus.textContent = '已暂停'; }
+        updatePiPState(state);
       });
     })();
 
@@ -1795,4 +1896,3 @@
   </script>
 </body>
 </html>
-
