@@ -1,1 +1,1798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>专注猫猫 | FocusCat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css">
+  <style>
+    /* ===== 像素字体 ===== */
+    @font-face {
+      font-family: 'Zpix';
+      src: url('https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font@master/dist/Zpix.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* ===== 全局重置 ===== */
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      image-rendering: pixelated;
+    }
+
+    /* ===== 根变量（与主站一致） ===== */
+    :root {
+      --bg-dark:    #1a1a2e;
+      --bg-mid:     #16213e;
+      --bg-card:    #0f3460;
+      --accent:     #53d769;
+      --accent2:    #00e5ff;
+      --accent3:    #e94560;
+      --accent4:    #f5a623;
+      --text:       #e0e0e0;
+      --text-dim:   #8892b0;
+      --border:     #53d769;
+      --glow:       rgba(83, 215, 105, .35);
+      --pixel-size: 4px;
+      --music-bar-h: 64px;
+    }
+
+    html { height: 100%; }
+
+    body {
+      font-family: 'Zpix', 'Press Start 2P', monospace;
+      background-color: var(--bg-dark);
+      color: var(--text);
+      min-height: 100%;
+      overflow-x: hidden;
+      position: relative;
+      padding-bottom: var(--music-bar-h);
+    }
+
+    /* ===== 扫描线 ===== */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ===== 浮动粒子 ===== */
+    .bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bubble {
+      position: absolute; bottom: -20px; width: 8px; height: 8px;
+      background: var(--accent); opacity: .2;
+      animation: floatUp linear infinite;
+    }
+    .bubble:nth-child(2n) { background: var(--accent2); width: 6px; height: 6px; }
+    .bubble:nth-child(3n) { background: var(--accent3); width: 10px; height: 10px; opacity: .15; }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) scale(1); opacity: .2; }
+      100% { transform: translateY(-110vh) scale(.5); opacity: 0; }
+    }
+
+    /* ===== 主容器 ===== */
+    .container {
+      position: relative; z-index: 1;
+      max-width: 680px; margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    /* ===== 顶部装饰条 ===== */
+    .top-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; margin-bottom: 20px;
+      border: var(--pixel-size) solid var(--border);
+      background: var(--bg-mid);
+      font-size: 10px; color: var(--accent);
+      box-shadow: 0 0 12px var(--glow);
+    }
+    .top-bar .dot { width: 8px; height: 8px; display: inline-block; }
+    .top-bar .dot.red   { background: var(--accent3); }
+    .top-bar .dot.yellow { background: #f5a623; }
+    .top-bar .dot.green  { background: var(--accent); }
+    .top-bar-text { flex: 1; }
+    .btn-minimize {
+      background: none; border: 2px solid var(--accent2); color: var(--accent2);
+      font-family: inherit; font-size: 10px; padding: 2px 8px; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-minimize:hover { background: var(--accent2); color: var(--bg-dark); }
+    .btn-minimize.pip-active { border-color: var(--accent); color: var(--accent); }
+
+    /* ===== HEADER ===== */
+    .header { text-align: center; padding: 28px 0 20px; }
+
+    /* 像素猫（纯CSS） */
+    .pixel-cat {
+      display: inline-block; position: relative;
+      width: 48px; height: 48px; margin-bottom: 12px;
+    }
+    .pixel-cat .head {
+      position: absolute; top: 8px; left: 8px;
+      width: 32px; height: 24px; background: var(--accent);
+      border-radius: 2px;
+    }
+    .pixel-cat .ear-l, .pixel-cat .ear-r {
+      position: absolute; top: 0; width: 10px; height: 12px; background: var(--accent);
+    }
+    .pixel-cat .ear-l { left: 8px; }
+    .pixel-cat .ear-r { right: 8px; }
+    .pixel-cat .eye-l, .pixel-cat .eye-r {
+      position: absolute; top: 16px; width: 6px; height: 6px; background: var(--bg-dark);
+      border-radius: 1px;
+    }
+    .pixel-cat .eye-l { left: 14px; }
+    .pixel-cat .eye-r { right: 14px; }
+    .pixel-cat .nose {
+      position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 3px; background: var(--accent3);
+    }
+    .pixel-cat .body-cat {
+      position: absolute; bottom: 0; left: 10px;
+      width: 28px; height: 18px; background: var(--accent); opacity: .7;
+      border-radius: 0 0 4px 4px;
+    }
+    .pixel-cat .tail {
+      position: absolute; bottom: 4px; right: 2px;
+      width: 8px; height: 4px; background: var(--accent); opacity: .7;
+      border-radius: 0 4px 4px 0;
+      animation: wagTail 1.5s ease-in-out infinite;
+    }
+    @keyframes wagTail {
+      0%, 100% { transform: rotate(-10deg); }
+      50%      { transform: rotate(15deg); }
+    }
+
+    .title {
+      font-family: 'Zpix', 'Press Start 2P', monospace;
+      font-size: 28px; color: var(--accent);
+      text-shadow: 3px 3px 0 rgba(0,0,0,.5), 0 0 20px var(--glow);
+      letter-spacing: 4px; line-height: 1.4; margin-bottom: 6px;
+    }
+    .subtitle {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px; color: var(--accent2);
+      text-shadow: 0 0 10px rgba(0,229,255,.4);
+      letter-spacing: 4px;
+    }
+    .cursor-blink {
+      display: inline-block; width: 10px; height: 2px;
+      background: var(--accent); margin-left: 4px;
+      animation: blink .8s step-end infinite; vertical-align: middle;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ===== TAB 导航 ===== */
+    .tab-nav {
+      display: flex; gap: 4px; margin-bottom: 20px;
+      border-bottom: 3px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 8px;
+      background: var(--bg-mid); border: 3px solid transparent;
+      border-bottom: none;
+      color: var(--text-dim); font-family: inherit; font-size: 12px;
+      cursor: pointer; transition: all .15s;
+      text-align: center; position: relative; top: 3px;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--bg-card); }
+    .tab-btn.active {
+      color: var(--accent); background: var(--bg-dark);
+      border-color: var(--border);
+      border-bottom: 3px solid var(--bg-dark);
+      text-shadow: 0 0 8px var(--glow);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ===== 通用像素风组件 ===== */
+    .pixel-box {
+      border: 3px solid var(--border); background: var(--bg-mid);
+      padding: 20px; margin-bottom: 16px;
+      box-shadow: 0 0 12px var(--glow); position: relative;
+    }
+    .pixel-box::before {
+      content: attr(data-label);
+      position: absolute; top: -12px; left: 12px;
+      background: var(--bg-dark); padding: 0 8px;
+      font-size: 9px; color: var(--text-dim);
+    }
+    .pixel-input {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg-dark); border: 3px solid var(--border);
+      color: var(--text); font-family: inherit; font-size: 12px;
+      outline: none; transition: border-color .15s;
+    }
+    .pixel-input:focus { border-color: var(--accent2); box-shadow: 0 0 8px rgba(0,229,255,.3); }
+    .pixel-input::placeholder { color: var(--text-dim); }
+
+    .pixel-btn {
+      padding: 8px 16px; background: var(--bg-mid);
+      border: 3px solid var(--accent); color: var(--accent);
+      font-family: inherit; font-size: 11px; cursor: pointer;
+      transition: all .15s;
+    }
+    .pixel-btn:hover {
+      background: var(--accent); color: var(--bg-dark);
+      box-shadow: 0 0 12px var(--glow);
+    }
+    .pixel-btn.danger { border-color: var(--accent3); color: var(--accent3); }
+    .pixel-btn.danger:hover { background: var(--accent3); color: #fff; }
+    .pixel-btn.cyan { border-color: var(--accent2); color: var(--accent2); }
+    .pixel-btn.cyan:hover { background: var(--accent2); color: var(--bg-dark); }
+    .pixel-btn.orange { border-color: var(--accent4); color: var(--accent4); }
+    .pixel-btn.orange:hover { background: var(--accent4); color: var(--bg-dark); }
+    .pixel-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .pixel-select {
+      padding: 6px 10px; background: var(--bg-dark); border: 3px solid var(--border);
+      color: var(--text); font-family: inherit; font-size: 11px; outline: none;
+    }
+
+    .section-label {
+      font-size: 14px; color: var(--accent); margin-bottom: 14px;
+      text-shadow: 0 0 8px var(--glow);
+    }
+
+    /* ===== 番茄钟 ===== */
+    .timer-display {
+      text-align: center; padding: 24px 0;
+    }
+    .timer-clock {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 48px; color: var(--accent);
+      text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow);
+      letter-spacing: 4px; margin-bottom: 8px;
+    }
+    .timer-label {
+      font-size: 12px; color: var(--accent2); margin-bottom: 20px;
+    }
+    .timer-progress {
+      display: flex; gap: 12px; justify-content: center; margin-bottom: 24px;
+    }
+    .progress-item {
+      text-align: center; flex: 1; max-width: 160px;
+    }
+    .progress-item .prog-icon { font-size: 20px; margin-bottom: 4px; }
+    .progress-item .prog-label { font-size: 9px; color: var(--text-dim); margin-bottom: 6px; }
+    .progress-bar-outer {
+      height: 12px; background: var(--bg-dark);
+      border: 2px solid var(--border); position: relative; overflow: hidden;
+    }
+    .progress-bar-inner {
+      height: 100%; background: var(--accent); transition: width .5s;
+      box-shadow: 0 0 6px var(--glow);
+    }
+    .progress-bar-outer[data-type="water"] .progress-bar-inner { background: var(--accent2); box-shadow: 0 0 6px rgba(0,229,255,.4); }
+    .progress-bar-outer[data-type="walk"]  .progress-bar-inner { background: var(--accent4); box-shadow: 0 0 6px rgba(245,166,35,.4); }
+
+    .timer-controls {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    }
+    .timer-total {
+      text-align: center; margin-top: 16px; font-size: 10px; color: var(--text-dim);
+    }
+
+    /* ===== 任务打卡 ===== */
+    .todo-input-row {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .todo-input-row .pixel-input { flex: 1; }
+
+    .todo-list { list-style: none; }
+    .todo-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-bottom: 2px solid rgba(83,215,105,.15);
+      transition: all .3s; position: relative;
+    }
+    .todo-item.completed {
+      opacity: .5;
+    }
+    .todo-item.completed .todo-text {
+      text-decoration: line-through; color: var(--text-dim);
+    }
+    .todo-item.dropping {
+      animation: dropDown .4s ease-out;
+    }
+    @keyframes dropDown {
+      0%   { transform: translateY(-20px); opacity: .3; }
+      100% { transform: translateY(0); opacity: .5; }
+    }
+
+    .todo-checkbox {
+      width: 18px; height: 18px; border: 3px solid var(--border);
+      background: var(--bg-dark); cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .todo-checkbox:hover { border-color: var(--accent2); }
+    .todo-checkbox.checked {
+      background: var(--accent); border-color: var(--accent);
+    }
+    .todo-checkbox.checked::after {
+      content: ''; display: block; width: 8px; height: 8px; background: var(--bg-dark);
+    }
+    .todo-text { flex: 1; font-size: 12px; line-height: 1.6; word-break: break-all; }
+    .todo-delete {
+      background: none; border: none; color: var(--accent3); font-size: 14px;
+      cursor: pointer; opacity: .4; padding: 4px; font-family: inherit;
+      transition: opacity .15s;
+    }
+    .todo-delete:hover { opacity: 1; }
+    .todo-empty {
+      text-align: center; padding: 32px 0; color: var(--text-dim); font-size: 11px;
+      line-height: 2;
+    }
+    .todo-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 12px; font-size: 10px; color: var(--text-dim);
+    }
+
+    /* ===== 闹钟 ===== */
+    .alarm-form {
+      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .alarm-form .field { display: flex; flex-direction: column; gap: 4px; }
+    .alarm-form .field label { font-size: 9px; color: var(--text-dim); }
+    .alarm-form .pixel-input { width: auto; }
+    .alarm-list { margin-bottom: 20px; }
+    .alarm-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-bottom: 2px solid rgba(83,215,105,.15);
+    }
+    .alarm-time {
+      font-family: 'Press Start 2P', monospace; font-size: 16px;
+      color: var(--accent); min-width: 80px;
+    }
+    .alarm-label-text { flex: 1; font-size: 11px; color: var(--text); }
+    .alarm-repeat { font-size: 9px; color: var(--accent2); }
+    .alarm-toggle {
+      width: 36px; height: 18px; border: 2px solid var(--border);
+      background: var(--bg-dark); cursor: pointer; position: relative;
+      transition: all .15s;
+    }
+    .alarm-toggle.on { border-color: var(--accent); background: rgba(83,215,105,.2); }
+    .alarm-toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 10px; height: 10px; background: var(--text-dim);
+      transition: all .15s;
+    }
+    .alarm-toggle.on::after { left: 20px; background: var(--accent); }
+    .alarm-delete { background: none; border: none; color: var(--accent3); cursor: pointer; opacity: .4; font-family: inherit; font-size: 14px; padding: 4px; }
+    .alarm-delete:hover { opacity: 1; }
+
+    /* ===== 滴药模式 ===== */
+    .eyedrop-section { margin-top: 8px; }
+    .eyedrop-times, .eyedrop-meds { margin-bottom: 12px; }
+    .eyedrop-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; margin: 4px; font-size: 10px;
+      border: 2px solid var(--accent2); color: var(--accent2);
+    }
+    .eyedrop-tag .tag-remove {
+      background: none; border: none; color: var(--accent3); cursor: pointer;
+      font-size: 12px; font-family: inherit; padding: 0 0 0 4px;
+    }
+    .med-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0; font-size: 11px;
+    }
+    .med-order {
+      width: 22px; height: 22px; border: 2px solid var(--accent4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: var(--accent4); flex-shrink: 0;
+    }
+    .eyedrop-status {
+      padding: 12px; border: 2px dashed var(--accent2);
+      font-size: 11px; color: var(--accent2); line-height: 1.8;
+      margin-top: 12px;
+    }
+    .interval-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 11px;
+    }
+    .interval-row .pixel-input { width: 60px; text-align: center; }
+
+    /* ===== 音乐 Tab ===== */
+    .music-panel { padding-bottom: 20px; }
+    .music-preset {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+    }
+    .playlist-input-row {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .playlist-input-row .pixel-input { flex: 1; }
+
+    /* ===== 底部音乐条 ===== */
+    .music-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--music-bar-h); background: var(--bg-mid);
+      border-top: 3px solid var(--border);
+      z-index: 100; display: flex; align-items: center;
+      padding: 0 16px; gap: 12px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.3);
+    }
+    .music-bar .now-playing {
+      flex: 1; font-size: 10px; color: var(--text-dim);
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .music-bar .now-playing .song-name { color: var(--accent); }
+    .music-bar-controls {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .music-bar-btn {
+      background: none; border: 2px solid var(--accent); color: var(--accent);
+      width: 28px; height: 28px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; padding: 0;
+    }
+    .music-bar-btn:hover { background: var(--accent); color: var(--bg-dark); }
+    .volume-slider {
+      width: 60px; height: 4px; -webkit-appearance: none; appearance: none;
+      background: var(--bg-dark); outline: none; border: 1px solid var(--border);
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 12px; height: 12px;
+      background: var(--accent); cursor: pointer;
+    }
+
+    /* ===== 悬浮小窗 ===== */
+    .mini-widget {
+      display: none; position: fixed; z-index: 9998;
+      bottom: 80px; right: 20px;
+      width: 72px; cursor: grab; user-select: none;
+      text-align: center;
+    }
+    .mini-widget.visible { display: block; }
+    .mini-widget.dragging { cursor: grabbing; }
+    .mini-timer-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px; color: var(--accent);
+      text-shadow: 0 0 6px var(--glow);
+      margin-bottom: 4px; white-space: nowrap;
+    }
+    .mini-cat {
+      width: 40px; height: 40px; margin: 0 auto;
+      position: relative;
+    }
+    .mini-cat .m-head {
+      position: absolute; top: 6px; left: 8px;
+      width: 24px; height: 16px; background: var(--accent);
+    }
+    .mini-cat .m-ear-l, .mini-cat .m-ear-r {
+      position: absolute; top: 0; width: 8px; height: 8px; background: var(--accent);
+    }
+    .mini-cat .m-ear-l { left: 8px; }
+    .mini-cat .m-ear-r { right: 8px; }
+    .mini-cat .m-eye-l, .mini-cat .m-eye-r {
+      position: absolute; top: 11px; width: 4px; height: 4px; background: var(--bg-dark);
+    }
+    .mini-cat .m-eye-l { left: 12px; }
+    .mini-cat .m-eye-r { right: 12px; }
+    .mini-cat .m-body {
+      position: absolute; bottom: 0; left: 10px;
+      width: 20px; height: 12px; background: var(--accent); opacity: .7;
+    }
+    .mini-status {
+      font-size: 8px; color: var(--text-dim); margin-top: 2px;
+    }
+
+    /* 像素猫呼吸动画 */
+    .mini-cat.breathing { animation: catBreathe 2s ease-in-out infinite; }
+    @keyframes catBreathe {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-2px); }
+    }
+    .mini-cat.sleeping .m-eye-l,
+    .mini-cat.sleeping .m-eye-r {
+      height: 2px; top: 12px;
+    }
+
+    /* ===== 提醒 Overlay ===== */
+    .notify-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9990;
+      background: rgba(0,0,0,.75);
+      align-items: center; justify-content: center;
+    }
+    .notify-overlay.visible {
+      display: flex;
+    }
+    .notify-box {
+      border: 4px solid var(--accent); background: var(--bg-mid);
+      padding: 32px 40px; text-align: center; max-width: 400px;
+      box-shadow: 0 0 30px var(--glow);
+      animation: popIn .3s ease-out;
+    }
+    @keyframes popIn {
+      0%   { transform: scale(.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .notify-box .notify-icon { font-size: 36px; margin-bottom: 12px; }
+    .notify-box .notify-title {
+      font-size: 16px; color: var(--accent); margin-bottom: 8px;
+      text-shadow: 0 0 10px var(--glow);
+    }
+    .notify-box .notify-msg {
+      font-size: 11px; color: var(--text); line-height: 1.8; margin-bottom: 16px;
+    }
+    .notify-box .notify-countdown {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 28px; color: var(--accent2);
+      text-shadow: 0 0 12px rgba(0,229,255,.5);
+      margin-bottom: 16px;
+    }
+    .notify-box .notify-countdown:empty { display: none; }
+
+    /* ===== 设置面板 ===== */
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 2px solid rgba(83,215,105,.1);
+      font-size: 11px;
+    }
+    .settings-row .s-label { color: var(--text-dim); }
+    .settings-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ===== 页脚 ===== */
+    .footer {
+      text-align: center; padding: 24px 0 16px;
+      font-size: 10px; color: var(--text-dim); line-height: 2;
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-shadow: 0 0 8px var(--glow); }
+
+    /* ===== 分隔线 ===== */
+    .pixel-divider {
+      display: flex; justify-content: center; align-items: center; gap: 4px;
+      margin: 20px 0;
+    }
+    .pixel-divider span { display: inline-block; width: 6px; height: 6px; background: var(--accent); opacity: .4; }
+    .pixel-divider span:nth-child(2n) { background: var(--accent2); width: 4px; height: 4px; }
+    .pixel-divider span:nth-child(5n) { background: var(--accent3); }
+
+    /* ===== 隐藏主内容（小窗模式） ===== */
+    body.minimized .container { display: none; }
+    body.minimized { padding-bottom: 0; }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 600px) {
+      .title { font-size: 22px; letter-spacing: 2px; }
+      .subtitle { font-size: 9px; letter-spacing: 2px; }
+      .timer-clock { font-size: 32px; }
+      .tab-btn { font-size: 10px; padding: 8px 4px; }
+      .container { padding: 16px 10px 32px; }
+      .alarm-form { flex-direction: column; }
+      .notify-box { margin: 16px; padding: 24px 20px; }
+    }
+
+    /* APlayer 像素风覆盖 */
+    .aplayer { border: none !important; box-shadow: none !important; background: transparent !important; font-family: 'Zpix', monospace !important; }
+    .aplayer .aplayer-info { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- 粒子背景 -->
+  <div class="bubbles" id="bubbles"></div>
+
+  <!-- ===== 主容器 ===== -->
+  <div class="container">
+
+    <!-- 顶部装饰条 -->
+    <div class="top-bar">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="top-bar-text">FOCUS_CAT_OS v1.0 — [<span id="sysStatus">IDLE</span>]</span>
+      <button class="btn-minimize" id="btnMinimize" title="最小化为小窗">_</button>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="pixel-cat" aria-hidden="true">
+        <div class="ear-l"></div><div class="ear-r"></div>
+        <div class="head"></div>
+        <div class="eye-l"></div><div class="eye-r"></div>
+        <div class="nose"></div>
+        <div class="body-cat"></div>
+        <div class="tail"></div>
+      </div>
+      <h1 class="title">专注猫猫</h1>
+      <p class="subtitle">focus.cattolab.cn<span class="cursor-blink"></span></p>
+    </header>
+
+    <!-- TAB 导航 -->
+    <nav class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="timer">🍅 番茄钟</button>
+      <button class="tab-btn" data-tab="todo">📋 任务</button>
+      <button class="tab-btn" data-tab="alarm">⏰ 闹钟</button>
+      <button class="tab-btn" data-tab="music">🎵 音乐</button>
+    </nav>
+
+    <!-- ===== TAB: 番茄钟 ===== -->
+    <section class="tab-panel active" id="panelTimer" data-tab="timer">
+      <div class="pixel-box" data-label="// POMODORO_ENGINE">
+        <div class="timer-display">
+          <div class="timer-clock" id="timerClock">00:00:00</div>
+          <div class="timer-label" id="timerLabel">按下开始，进入专注模式</div>
+        </div>
+        <div class="timer-progress">
+          <div class="progress-item">
+            <div class="prog-icon">👁️</div>
+            <div class="prog-label">护眼 20min</div>
+            <div class="progress-bar-outer" data-type="eye">
+              <div class="progress-bar-inner" id="progEye" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="prog-icon">💧</div>
+            <div class="prog-label">喝水 45min</div>
+            <div class="progress-bar-outer" data-type="water">
+              <div class="progress-bar-inner" id="progWater" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="progress-item">
+            <div class="prog-icon">🚶</div>
+            <div class="prog-label">走动 90min</div>
+            <div class="progress-bar-outer" data-type="walk">
+              <div class="progress-bar-inner" id="progWalk" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="timer-controls">
+          <button class="pixel-btn" id="btnStart">▶ 开始</button>
+          <button class="pixel-btn cyan" id="btnPause" disabled>⏸ 暂停</button>
+          <button class="pixel-btn danger" id="btnReset" disabled>⏹ 重置</button>
+        </div>
+        <div class="timer-total" id="timerTotal">今日累计专注：0 分钟</div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: 任务打卡 ===== -->
+    <section class="tab-panel" id="panelTodo" data-tab="todo">
+      <div class="pixel-box" data-label="// TODO_BOARD">
+        <div class="todo-input-row">
+          <input class="pixel-input" id="todoInput" type="text" placeholder="输入新任务..." maxlength="100">
+          <button class="pixel-btn" id="btnAddTodo">+ 添加</button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+        <div class="todo-footer">
+          <span id="todoCount">0 个任务</span>
+          <button class="pixel-btn danger" id="btnClearDone" style="font-size:9px;padding:4px 10px;">清除已完成</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: 闹钟 ===== -->
+    <section class="tab-panel" id="panelAlarm" data-tab="alarm">
+      <!-- 常规闹钟 -->
+      <div class="pixel-box" data-label="// ALARM_MODULE">
+        <div class="section-label">⏰ 常规闹钟</div>
+        <div class="alarm-form">
+          <div class="field">
+            <label>时间</label>
+            <input class="pixel-input" id="alarmTime" type="time" style="width:100px;">
+          </div>
+          <div class="field">
+            <label>备注</label>
+            <input class="pixel-input" id="alarmLabel" type="text" placeholder="做什么..." style="width:140px;" maxlength="50">
+          </div>
+          <div class="field">
+            <label>重复</label>
+            <select class="pixel-select" id="alarmRepeat">
+              <option value="daily">每天</option>
+              <option value="once">仅一次</option>
+            </select>
+          </div>
+          <button class="pixel-btn" id="btnAddAlarm">+ 添加</button>
+        </div>
+        <div class="alarm-list" id="alarmList"></div>
+      </div>
+
+      <!-- 滴药模式 -->
+      <div class="pixel-box" data-label="// EYEDROP_MODULE">
+        <div class="section-label">💧 滴药计划</div>
+
+        <div class="interval-row">
+          <span>药品间隔</span>
+          <input class="pixel-input" id="edInterval" type="number" min="1" max="60" value="5">
+          <span>分钟</span>
+        </div>
+
+        <div class="eyedrop-times">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;">每日滴药时间：</div>
+          <div id="edTimesList"></div>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <input class="pixel-input" id="edTimeInput" type="time" style="width:100px;">
+            <button class="pixel-btn cyan" id="btnAddEdTime" style="font-size:9px;padding:4px 10px;">+ 时间</button>
+          </div>
+        </div>
+
+        <div class="eyedrop-meds">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;">药品列表（按顺序）：</div>
+          <div id="edMedsList"></div>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <input class="pixel-input" id="edMedInput" type="text" placeholder="药品名称..." style="flex:1;" maxlength="30">
+            <button class="pixel-btn orange" id="btnAddEdMed" style="font-size:9px;padding:4px 10px;">+ 药品</button>
+          </div>
+        </div>
+
+        <div class="eyedrop-status" id="edStatus">
+          > 设置滴药时间和药品后自动运行
+        </div>
+      </div>
+
+      <!-- 设置 -->
+      <div class="pixel-box" data-label="// SETTINGS">
+        <div class="section-label">⚙️ 数据管理</div>
+        <div class="settings-row">
+          <span class="s-label">浏览器通知权限</span>
+          <button class="pixel-btn cyan" id="btnNotifyPerm" style="font-size:9px;padding:4px 10px;">请求权限</button>
+        </div>
+        <div class="settings-btns">
+          <button class="pixel-btn" id="btnExport">📤 导出数据</button>
+          <button class="pixel-btn cyan" id="btnImport">📥 导入数据</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+      </div>
+    </section>
+
+    <!-- ===== TAB: 音乐 ===== -->
+    <section class="tab-panel" id="panelMusic" data-tab="music">
+      <div class="pixel-box" data-label="// MUSIC_PLAYER">
+        <div class="section-label">🎵 音乐播放器</div>
+        <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px;line-height:1.8;">
+          > 输入网易云歌单 ID 加载音乐<br>
+          > 或使用预设白噪音歌单
+        </p>
+        <div class="music-preset">
+          <button class="pixel-btn" data-playlist="3778678" data-server="netease" data-type="playlist">🌿 轻音乐</button>
+          <button class="pixel-btn cyan" data-playlist="2684525054" data-server="netease" data-type="playlist">🌧️ 雨声</button>
+          <button class="pixel-btn orange" data-playlist="5276511739" data-server="netease" data-type="playlist">☕ Lo-fi</button>
+        </div>
+        <div class="playlist-input-row">
+          <input class="pixel-input" id="playlistInput" type="text" placeholder="输入网易云歌单ID...">
+          <button class="pixel-btn" id="btnLoadPlaylist">加载</button>
+        </div>
+        <div id="aplayerContainer"></div>
+      </div>
+    </section>
+
+    <!-- 页脚 -->
+    <div class="pixel-divider">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <footer class="footer">
+      <p>◆ 专注猫猫 — <a href="../">猫猫糕实验室</a> ◆</p>
+      <p>focus.cattolab.cn</p>
+    </footer>
+  </div>
+
+  <!-- ===== 底部音乐条 ===== -->
+  <div class="music-bar" id="musicBar">
+    <div class="now-playing">
+      <span class="song-name" id="nowPlaying">🎵 未播放</span>
+    </div>
+    <div class="music-bar-controls">
+      <button class="music-bar-btn" id="btnPrev" title="上一首">⏮</button>
+      <button class="music-bar-btn" id="btnPlay" title="播放/暂停">▶</button>
+      <button class="music-bar-btn" id="btnNext" title="下一首">⏭</button>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50" title="音量">
+    </div>
+  </div>
+
+  <!-- ===== 悬浮小窗 ===== -->
+  <div class="mini-widget" id="miniWidget">
+    <div class="mini-timer-text" id="miniTimerText">00:00</div>
+    <div class="mini-cat breathing" id="miniCat">
+      <div class="m-ear-l"></div><div class="m-ear-r"></div>
+      <div class="m-head"></div>
+      <div class="m-eye-l"></div><div class="m-eye-r"></div>
+      <div class="m-body"></div>
+    </div>
+    <div class="mini-status" id="miniStatus">点击展开</div>
+  </div>
+
+  <!-- ===== 提醒 Overlay ===== -->
+  <div class="notify-overlay" id="notifyOverlay">
+    <div class="notify-box">
+      <div class="notify-icon" id="notifyIcon">🐱</div>
+      <div class="notify-title" id="notifyTitle">提醒</div>
+      <div class="notify-msg" id="notifyMsg">消息内容</div>
+      <div class="notify-countdown" id="notifyCountdown"></div>
+      <button class="pixel-btn" id="btnDismiss">知道了喵~</button>
+    </div>
+  </div>
+
+  <!-- ===== JS 脚本 ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script>
+  <script>
+  /* ================================================================
+     FocusApp — 专注猫猫 全功能应用
+     ================================================================ */
+  (function () {
+    'use strict';
+
+    var FocusApp = window.FocusApp = {};
+
+    /* ===== Events 事件总线 ===== */
+    FocusApp.Events = (function () {
+      var listeners = {};
+      return {
+        on: function (evt, fn) {
+          (listeners[evt] = listeners[evt] || []).push(fn);
+        },
+        off: function (evt, fn) {
+          if (!listeners[evt]) return;
+          listeners[evt] = listeners[evt].filter(function (f) { return f !== fn; });
+        },
+        emit: function (evt, data) {
+          (listeners[evt] || []).forEach(function (fn) { fn(data); });
+        }
+      };
+    })();
+
+    /* ===== Store 数据存储 ===== */
+    FocusApp.Store = (function () {
+      var PREFIX = 'focuscat_';
+      return {
+        get: function (key) {
+          try { return JSON.parse(localStorage.getItem(PREFIX + key)); }
+          catch (e) { return null; }
+        },
+        set: function (key, val) {
+          localStorage.setItem(PREFIX + key, JSON.stringify(val));
+        },
+        remove: function (key) {
+          localStorage.removeItem(PREFIX + key);
+        },
+        exportAll: function () {
+          var data = {};
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k.indexOf(PREFIX) === 0) {
+              data[k] = localStorage.getItem(k);
+            }
+          }
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'focuscat_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        },
+        importAll: function (jsonStr) {
+          try {
+            var data = JSON.parse(jsonStr);
+            Object.keys(data).forEach(function (k) {
+              if (k.indexOf(PREFIX) === 0) localStorage.setItem(k, data[k]);
+            });
+            return true;
+          } catch (e) { return false; }
+        }
+      };
+    })();
+
+    /* ===== Notify 通知管理器 ===== */
+    FocusApp.Notify = (function () {
+      var overlay = document.getElementById('notifyOverlay');
+      var elIcon = document.getElementById('notifyIcon');
+      var elTitle = document.getElementById('notifyTitle');
+      var elMsg = document.getElementById('notifyMsg');
+      var elCountdown = document.getElementById('notifyCountdown');
+      var btnDismiss = document.getElementById('btnDismiss');
+      var countdownTimer = null;
+
+      // 8-bit 音效生成
+      function playBeep(freq, duration, type) {
+        try {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = type || 'square';
+          osc.frequency.value = freq || 440;
+          gain.gain.value = 0.15;
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (duration || 0.5));
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + (duration || 0.5));
+        } catch (e) {}
+      }
+
+      function playSoundByType(type) {
+        switch (type) {
+          case 'eye':   playBeep(523, 0.4, 'sine'); setTimeout(function(){ playBeep(659, 0.4, 'sine'); }, 300); break;
+          case 'water': playBeep(880, 0.2, 'triangle'); setTimeout(function(){ playBeep(660, 0.3, 'triangle'); }, 200); break;
+          case 'walk':  playBeep(330, 0.3, 'square'); setTimeout(function(){ playBeep(440, 0.3, 'square'); }, 250); setTimeout(function(){ playBeep(550, 0.4, 'square'); }, 500); break;
+          case 'alarm': playBeep(800, 0.15, 'square'); setTimeout(function(){ playBeep(800, 0.15, 'square'); }, 250); setTimeout(function(){ playBeep(800, 0.15, 'square'); }, 500); break;
+          case 'eyedrop': playBeep(600, 0.3, 'sine'); setTimeout(function(){ playBeep(750, 0.3, 'sine'); }, 250); setTimeout(function(){ playBeep(900, 0.4, 'sine'); }, 500); break;
+          default: playBeep(440, 0.3, 'square');
+        }
+      }
+
+      function show(opts) {
+        // opts: { icon, title, msg, type, countdownSec }
+        elIcon.textContent = opts.icon || '🐱';
+        elTitle.textContent = opts.title || '提醒';
+        elMsg.textContent = opts.msg || '';
+        elCountdown.textContent = '';
+        overlay.classList.add('visible');
+        playSoundByType(opts.type);
+
+        // 浏览器通知
+        if (document.visibilityState === 'hidden' && Notification.permission === 'granted') {
+          new Notification('专注猫猫 — ' + (opts.title || '提醒'), {
+            body: opts.msg || '',
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🐱</text></svg>'
+          });
+        }
+
+        // 倒计时模式
+        if (countdownTimer) clearInterval(countdownTimer);
+        if (opts.countdownSec && opts.countdownSec > 0) {
+          var remaining = opts.countdownSec;
+          elCountdown.textContent = remaining + 's';
+          countdownTimer = setInterval(function () {
+            remaining--;
+            elCountdown.textContent = remaining > 0 ? remaining + 's' : '';
+            if (remaining <= 0) {
+              clearInterval(countdownTimer);
+              countdownTimer = null;
+              dismiss();
+            }
+          }, 1000);
+        }
+      }
+
+      function dismiss() {
+        overlay.classList.remove('visible');
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+        FocusApp.Events.emit('notify:dismiss');
+      }
+
+      btnDismiss.addEventListener('click', dismiss);
+
+      return { show: show, dismiss: dismiss, playSound: playSoundByType };
+    })();
+
+    /* ===== Tab 导航 ===== */
+    (function () {
+      var nav = document.getElementById('tabNav');
+      var btns = nav.querySelectorAll('.tab-btn');
+      var panels = document.querySelectorAll('.tab-panel');
+
+      function switchTab(tabName) {
+        btns.forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tabName); });
+        panels.forEach(function (p) { p.classList.toggle('active', p.dataset.tab === tabName); });
+        window.location.hash = tabName;
+      }
+
+      nav.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tab-btn');
+        if (btn) switchTab(btn.dataset.tab);
+      });
+
+      // 从 hash 恢复
+      var hash = window.location.hash.replace('#', '');
+      if (hash && document.querySelector('[data-tab="' + hash + '"]')) {
+        switchTab(hash);
+      }
+    })();
+
+    /* ===== Timer 番茄钟 ===== */
+    FocusApp.Timer = (function () {
+      var state = 'idle'; // idle, running, paused
+      var startTs = 0;
+      var elapsed = 0;     // 已经过秒数
+      var pausedAt = 0;
+      var tickInterval = null;
+      var totalFocusToday = FocusApp.Store.get('todayFocus') || 0;
+      var todayDate = new Date().toDateString();
+
+      // 检查日期重置
+      var savedDate = FocusApp.Store.get('todayDate');
+      if (savedDate !== todayDate) {
+        totalFocusToday = 0;
+        FocusApp.Store.set('todayDate', todayDate);
+        FocusApp.Store.set('todayFocus', 0);
+      }
+
+      var CHECKPOINTS = [
+        { at: 20 * 60, type: 'eye',   icon: '👁️', title: '护眼时间',     msg: '看看远处，让眼睛休息 20 秒~', countdown: 20 },
+        { at: 45 * 60, type: 'water', icon: '💧', title: '喝水时间',     msg: '喵~ 该喝口水啦~', countdown: 0 },
+        { at: 90 * 60, type: 'walk',  icon: '🚶', title: '起来走走',     msg: '喵~ 你已经专注了 90 分钟，起来活动一下吧~', countdown: 0 }
+      ];
+      var CYCLE = 90 * 60;
+      var triggeredInCycle = {};
+
+      var elClock = document.getElementById('timerClock');
+      var elLabel = document.getElementById('timerLabel');
+      var elTotal = document.getElementById('timerTotal');
+      var elProgEye = document.getElementById('progEye');
+      var elProgWater = document.getElementById('progWater');
+      var elProgWalk = document.getElementById('progWalk');
+      var btnStart = document.getElementById('btnStart');
+      var btnPause = document.getElementById('btnPause');
+      var btnReset = document.getElementById('btnReset');
+      var elSysStatus = document.getElementById('sysStatus');
+
+      function fmtTime(sec) {
+        var h = Math.floor(sec / 3600);
+        var m = Math.floor((sec % 3600) / 60);
+        var s = sec % 60;
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      function fmtShort(sec) {
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      function updateUI() {
+        var now = state === 'running' ? Math.floor((Date.now() - startTs) / 1000) + elapsed : elapsed;
+        var cyclePos = now % CYCLE;
+
+        elClock.textContent = fmtTime(now);
+        elProgEye.style.width = Math.min(100, (cyclePos / CHECKPOINTS[0].at) * 100) + '%';
+        elProgWater.style.width = Math.min(100, (cyclePos / CHECKPOINTS[1].at) * 100) + '%';
+        elProgWalk.style.width = Math.min(100, (cyclePos / CHECKPOINTS[2].at) * 100) + '%';
+
+        // 检查提醒
+        var cycleNum = Math.floor(now / CYCLE);
+        CHECKPOINTS.forEach(function (cp) {
+          var key = cycleNum + '_' + cp.type;
+          if (cyclePos >= cp.at && !triggeredInCycle[key] && state === 'running') {
+            triggeredInCycle[key] = true;
+            FocusApp.Notify.show({
+              icon: cp.icon, title: cp.title, msg: cp.msg,
+              type: cp.type, countdownSec: cp.countdown
+            });
+            if (cp.type === 'walk') {
+              // 走动提醒后，重置周期触发记录自动随 cycleNum 变化
+            }
+          }
+        });
+
+        // 更新小窗文字
+        FocusApp.Events.emit('timer:tick', { elapsed: now, state: state, short: fmtShort(now % 3600 < 3600 ? now : now) });
+      }
+
+      function start() {
+        state = 'running';
+        startTs = Date.now();
+        tickInterval = setInterval(updateUI, 1000);
+        updateBtns();
+        elLabel.textContent = '专注中...保持状态~';
+        elSysStatus.textContent = 'FOCUSING';
+        FocusApp.Events.emit('timer:state', 'running');
+        updateUI();
+      }
+
+      function pause() {
+        if (state !== 'running') return;
+        elapsed += Math.floor((Date.now() - startTs) / 1000);
+        state = 'paused';
+        clearInterval(tickInterval);
+        updateBtns();
+        elLabel.textContent = '已暂停';
+        elSysStatus.textContent = 'PAUSED';
+        FocusApp.Events.emit('timer:state', 'paused');
+      }
+
+      function reset() {
+        // 累加今日专注时间
+        var finalElapsed = state === 'running'
+          ? elapsed + Math.floor((Date.now() - startTs) / 1000)
+          : elapsed;
+        totalFocusToday += Math.floor(finalElapsed / 60);
+        FocusApp.Store.set('todayFocus', totalFocusToday);
+
+        state = 'idle';
+        elapsed = 0;
+        startTs = 0;
+        triggeredInCycle = {};
+        clearInterval(tickInterval);
+        elClock.textContent = '00:00:00';
+        elProgEye.style.width = '0%';
+        elProgWater.style.width = '0%';
+        elProgWalk.style.width = '0%';
+        elLabel.textContent = '按下开始，进入专注模式';
+        elSysStatus.textContent = 'IDLE';
+        updateBtns();
+        updateTotalUI();
+        FocusApp.Events.emit('timer:state', 'idle');
+      }
+
+      function resume() {
+        state = 'running';
+        startTs = Date.now();
+        tickInterval = setInterval(updateUI, 1000);
+        updateBtns();
+        elLabel.textContent = '专注中...保持状态~';
+        elSysStatus.textContent = 'FOCUSING';
+        FocusApp.Events.emit('timer:state', 'running');
+      }
+
+      function updateBtns() {
+        btnStart.disabled = state === 'running';
+        btnPause.disabled = state !== 'running';
+        btnReset.disabled = state === 'idle';
+        btnStart.textContent = state === 'paused' ? '▶ 继续' : '▶ 开始';
+      }
+
+      function updateTotalUI() {
+        elTotal.textContent = '今日累计专注：' + totalFocusToday + ' 分钟';
+      }
+
+      btnStart.addEventListener('click', function () {
+        if (state === 'paused') resume(); else start();
+      });
+      btnPause.addEventListener('click', pause);
+      btnReset.addEventListener('click', reset);
+
+      // 页面可见性变化时重新校准
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && state === 'running') {
+          updateUI();
+        }
+      });
+
+      updateBtns();
+      updateTotalUI();
+
+      return { getState: function () { return state; } };
+    })();
+
+    /* ===== TodoBoard 任务打卡 ===== */
+    FocusApp.TodoBoard = (function () {
+      var todos = FocusApp.Store.get('todos') || [];
+      var elList = document.getElementById('todoList');
+      var elInput = document.getElementById('todoInput');
+      var elCount = document.getElementById('todoCount');
+      var btnAdd = document.getElementById('btnAddTodo');
+      var btnClear = document.getElementById('btnClearDone');
+
+      function save() { FocusApp.Store.set('todos', todos); }
+
+      function render() {
+        // 排序：未完成在前(createdAt正序)，已完成在后(completedAt倒序)
+        var sorted = todos.slice().sort(function (a, b) {
+          if (a.completed !== b.completed) return a.completed ? 1 : -1;
+          if (a.completed) return (b.completedAt || 0) - (a.completedAt || 0);
+          return a.createdAt - b.createdAt;
+        });
+
+        elList.innerHTML = '';
+        if (sorted.length === 0) {
+          elList.innerHTML = '<div class="todo-empty">暂无任务，享受悠闲~ 🐱</div>';
+        } else {
+          sorted.forEach(function (todo) {
+            var li = document.createElement('li');
+            li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+            li.dataset.id = todo.id;
+            li.innerHTML =
+              '<div class="todo-checkbox' + (todo.completed ? ' checked' : '') + '" data-action="toggle"></div>' +
+              '<span class="todo-text">' + escHtml(todo.text) + '</span>' +
+              '<button class="todo-delete" data-action="delete" title="删除">x</button>';
+            elList.appendChild(li);
+          });
+        }
+        var pending = todos.filter(function (t) { return !t.completed; }).length;
+        elCount.textContent = pending + ' 个待办 / ' + todos.length + ' 个总计';
+      }
+
+      function escHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function addTodo() {
+        var text = elInput.value.trim();
+        if (!text) return;
+        todos.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          text: text,
+          completed: false,
+          createdAt: Date.now(),
+          completedAt: null
+        });
+        elInput.value = '';
+        save();
+        render();
+      }
+
+      elList.addEventListener('click', function (e) {
+        var action = e.target.dataset.action;
+        if (!action) return;
+        var li = e.target.closest('.todo-item');
+        if (!li) return;
+        var id = li.dataset.id;
+        var todo = todos.find(function (t) { return t.id === id; });
+        if (!todo) return;
+
+        if (action === 'toggle') {
+          todo.completed = !todo.completed;
+          todo.completedAt = todo.completed ? Date.now() : null;
+          if (todo.completed) {
+            li.classList.add('dropping');
+            FocusApp.Notify.playSound('alarm'); // 小音效
+          }
+          save();
+          setTimeout(render, todo.completed ? 350 : 0);
+        } else if (action === 'delete') {
+          todos = todos.filter(function (t) { return t.id !== id; });
+          save();
+          render();
+        }
+      });
+
+      btnAdd.addEventListener('click', addTodo);
+      elInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') addTodo(); });
+
+      btnClear.addEventListener('click', function () {
+        todos = todos.filter(function (t) { return !t.completed; });
+        save();
+        render();
+      });
+
+      render();
+    })();
+
+    /* ===== Alarm 闹钟 ===== */
+    FocusApp.Alarm = (function () {
+      var alarms = FocusApp.Store.get('alarms') || [];
+      var elList = document.getElementById('alarmList');
+      var btnAdd = document.getElementById('btnAddAlarm');
+      var triggeredToday = {};
+      var lastCheckedMinute = '';
+
+      function save() { FocusApp.Store.set('alarms', alarms); }
+
+      function render() {
+        elList.innerHTML = '';
+        if (alarms.length === 0) {
+          elList.innerHTML = '<div style="font-size:10px;color:var(--text-dim);padding:12px 0;text-align:center;">暂无闹钟 🐱</div>';
+          return;
+        }
+        alarms.forEach(function (alarm) {
+          var div = document.createElement('div');
+          div.className = 'alarm-item';
+          div.innerHTML =
+            '<span class="alarm-time">' + alarm.time + '</span>' +
+            '<span class="alarm-label-text">' + escHtml(alarm.label || '闹钟') + '</span>' +
+            '<span class="alarm-repeat">' + (alarm.repeat === 'daily' ? '每天' : '一次') + '</span>' +
+            '<div class="alarm-toggle' + (alarm.enabled ? ' on' : '') + '" data-action="toggle" data-id="' + alarm.id + '"></div>' +
+            '<button class="alarm-delete" data-action="delete" data-id="' + alarm.id + '" title="删除">x</button>';
+          elList.appendChild(div);
+        });
+      }
+
+      function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      btnAdd.addEventListener('click', function () {
+        var time = document.getElementById('alarmTime').value;
+        var label = document.getElementById('alarmLabel').value.trim();
+        var repeat = document.getElementById('alarmRepeat').value;
+        if (!time) return;
+        alarms.push({
+          id: Date.now().toString(36),
+          time: time,
+          label: label || '闹钟',
+          enabled: true,
+          repeat: repeat,
+          type: 'normal'
+        });
+        save();
+        render();
+        document.getElementById('alarmTime').value = '';
+        document.getElementById('alarmLabel').value = '';
+      });
+
+      elList.addEventListener('click', function (e) {
+        var action = e.target.dataset.action;
+        var id = e.target.dataset.id;
+        if (!action || !id) return;
+        if (action === 'toggle') {
+          var alarm = alarms.find(function (a) { return a.id === id; });
+          if (alarm) { alarm.enabled = !alarm.enabled; save(); render(); }
+        } else if (action === 'delete') {
+          alarms = alarms.filter(function (a) { return a.id !== id; });
+          save();
+          render();
+        }
+      });
+
+      function check() {
+        var now = new Date();
+        var hm = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+        if (hm === lastCheckedMinute) return;
+        lastCheckedMinute = hm;
+
+        // 日期重置
+        var today = now.toDateString();
+        if (triggeredToday._date !== today) {
+          triggeredToday = { _date: today };
+        }
+
+        alarms.forEach(function (alarm) {
+          if (!alarm.enabled) return;
+          if (alarm.time !== hm) return;
+          if (triggeredToday[alarm.id]) return;
+
+          triggeredToday[alarm.id] = true;
+          FocusApp.Notify.show({
+            icon: '⏰', title: alarm.label || '闹钟',
+            msg: '时间到了！—— ' + alarm.time,
+            type: 'alarm'
+          });
+
+          if (alarm.repeat === 'once') {
+            alarm.enabled = false;
+            save();
+            render();
+          }
+        });
+      }
+
+      setInterval(check, 15000);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') check();
+      });
+
+      render();
+      check();
+
+      return { getAlarms: function () { return alarms; } };
+    })();
+
+    /* ===== EyeDrop 滴药模式 ===== */
+    FocusApp.EyeDrop = (function () {
+      var plan = FocusApp.Store.get('eyedrop') || { times: [], medicines: [], intervalMinutes: 5 };
+      var elTimesList = document.getElementById('edTimesList');
+      var elMedsList = document.getElementById('edMedsList');
+      var elStatus = document.getElementById('edStatus');
+      var elInterval = document.getElementById('edInterval');
+
+      var activeSession = null; // { timeSlot, medIndex, nextAt }
+      var sessionTimer = null;
+      var triggeredSlots = {};
+      var lastCheckedMinute = '';
+
+      elInterval.value = plan.intervalMinutes || 5;
+
+      function save() { FocusApp.Store.set('eyedrop', plan); }
+
+      function renderTimes() {
+        elTimesList.innerHTML = '';
+        plan.times.sort().forEach(function (t) {
+          var tag = document.createElement('span');
+          tag.className = 'eyedrop-tag';
+          tag.innerHTML = t + ' <button class="tag-remove" data-time="' + t + '">x</button>';
+          elTimesList.appendChild(tag);
+        });
+      }
+
+      function renderMeds() {
+        elMedsList.innerHTML = '';
+        plan.medicines.forEach(function (med, i) {
+          var div = document.createElement('div');
+          div.className = 'med-item';
+          div.innerHTML =
+            '<span class="med-order">' + (i + 1) + '</span>' +
+            '<span style="flex:1">' + escHtml(med.name) + '</span>' +
+            '<button class="todo-delete" data-medidx="' + i + '" title="删除">x</button>';
+          elMedsList.appendChild(div);
+        });
+      }
+
+      function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      function updateStatus() {
+        if (plan.times.length === 0 || plan.medicines.length === 0) {
+          elStatus.textContent = '> 请添加滴药时间和药品';
+          return;
+        }
+        if (activeSession) {
+          var med = plan.medicines[activeSession.medIndex];
+          elStatus.innerHTML =
+            '> 当前时段：' + activeSession.timeSlot + '<br>' +
+            '> 正在等待滴第 ' + (activeSession.medIndex + 1) + ' 种药：<span style="color:var(--accent)">' + escHtml(med.name) + '</span>';
+        } else {
+          var now = new Date();
+          var hm = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+          var next = plan.times.filter(function (t) { return t > hm && !triggeredSlots[t]; }).sort()[0];
+          if (next) {
+            elStatus.textContent = '> 下一次滴药时间：' + next + '（共 ' + plan.medicines.length + ' 种药）';
+          } else {
+            elStatus.textContent = '> 今日滴药计划已完成 ✓';
+          }
+        }
+      }
+
+      // 添加时间
+      document.getElementById('btnAddEdTime').addEventListener('click', function () {
+        var t = document.getElementById('edTimeInput').value;
+        if (!t || plan.times.indexOf(t) !== -1) return;
+        plan.times.push(t);
+        save(); renderTimes(); updateStatus();
+        document.getElementById('edTimeInput').value = '';
+      });
+
+      // 删除时间
+      elTimesList.addEventListener('click', function (e) {
+        if (e.target.dataset.time) {
+          plan.times = plan.times.filter(function (t) { return t !== e.target.dataset.time; });
+          save(); renderTimes(); updateStatus();
+        }
+      });
+
+      // 添加药品
+      document.getElementById('btnAddEdMed').addEventListener('click', function () {
+        var name = document.getElementById('edMedInput').value.trim();
+        if (!name) return;
+        plan.medicines.push({ name: name, order: plan.medicines.length + 1 });
+        save(); renderMeds(); updateStatus();
+        document.getElementById('edMedInput').value = '';
+      });
+
+      // 删除药品
+      elMedsList.addEventListener('click', function (e) {
+        var idx = e.target.dataset.medidx;
+        if (idx !== undefined) {
+          plan.medicines.splice(parseInt(idx), 1);
+          save(); renderMeds(); updateStatus();
+        }
+      });
+
+      // 间隔变更
+      elInterval.addEventListener('change', function () {
+        plan.intervalMinutes = Math.max(1, Math.min(60, parseInt(elInterval.value) || 5));
+        elInterval.value = plan.intervalMinutes;
+        save();
+      });
+
+      // 滴药提醒流程
+      function startSession(timeSlot) {
+        activeSession = { timeSlot: timeSlot, medIndex: 0 };
+        promptMed();
+      }
+
+      function promptMed() {
+        if (!activeSession || activeSession.medIndex >= plan.medicines.length) {
+          // 本轮完成
+          activeSession = null;
+          updateStatus();
+          return;
+        }
+        var med = plan.medicines[activeSession.medIndex];
+        var num = activeSession.medIndex + 1;
+        var total = plan.medicines.length;
+        FocusApp.Notify.show({
+          icon: '💧',
+          title: '滴药提醒 (' + num + '/' + total + ')',
+          msg: '请滴第 ' + num + ' 种药：' + med.name,
+          type: 'eyedrop'
+        });
+        updateStatus();
+
+        // 等待用户关闭后启动下一个间隔
+        FocusApp.Events.on('notify:dismiss', onDismiss);
+      }
+
+      function onDismiss() {
+        FocusApp.Events.off('notify:dismiss', onDismiss);
+        if (!activeSession) return;
+        activeSession.medIndex++;
+        if (activeSession.medIndex < plan.medicines.length) {
+          // 等待间隔后提示下一种药
+          var waitMs = plan.intervalMinutes * 60 * 1000;
+          updateStatus();
+          sessionTimer = setTimeout(promptMed, waitMs);
+        } else {
+          activeSession = null;
+          updateStatus();
+        }
+      }
+
+      // 定时检查
+      function check() {
+        if (plan.times.length === 0 || plan.medicines.length === 0) return;
+        if (activeSession) return; // 正在进行中
+
+        var now = new Date();
+        var hm = (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
+
+        // 日期重置
+        var today = now.toDateString();
+        if (triggeredSlots._date !== today) {
+          triggeredSlots = { _date: today };
+        }
+
+        if (hm === lastCheckedMinute) return;
+        lastCheckedMinute = hm;
+
+        plan.times.forEach(function (t) {
+          if (t === hm && !triggeredSlots[t]) {
+            triggeredSlots[t] = true;
+            startSession(t);
+          }
+        });
+      }
+
+      setInterval(check, 15000);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') check();
+      });
+
+      renderTimes();
+      renderMeds();
+      updateStatus();
+      check();
+    })();
+
+    /* ===== Music 音乐播放器 ===== */
+    FocusApp.Music = (function () {
+      var ap = null;
+      var elContainer = document.getElementById('aplayerContainer');
+      var elNow = document.getElementById('nowPlaying');
+      var btnPlay = document.getElementById('btnPlay');
+      var btnPrev = document.getElementById('btnPrev');
+      var btnNext = document.getElementById('btnNext');
+      var volumeSlider = document.getElementById('volumeSlider');
+      var savedPrefs = FocusApp.Store.get('music_prefs') || {};
+
+      if (savedPrefs.volume !== undefined) volumeSlider.value = savedPrefs.volume;
+
+      function loadPlaylist(id, server, type) {
+        if (ap) { ap.destroy(); ap = null; }
+        elContainer.innerHTML = '';
+        // 创建 meting-js 元素
+        var meting = document.createElement('meting-js');
+        meting.setAttribute('server', server || 'netease');
+        meting.setAttribute('type', type || 'playlist');
+        meting.setAttribute('id', id);
+        meting.setAttribute('fixed', 'false');
+        meting.setAttribute('mini', 'false');
+        meting.setAttribute('autoplay', 'false');
+        meting.setAttribute('theme', '#53d769');
+        meting.setAttribute('loop', 'all');
+        meting.setAttribute('volume', (parseInt(volumeSlider.value) / 100).toFixed(2));
+        meting.setAttribute('preload', 'auto');
+        elContainer.appendChild(meting);
+
+        // 等待 APlayer 初始化
+        var pollCount = 0;
+        var poll = setInterval(function () {
+          pollCount++;
+          var aplayers = document.querySelectorAll('.aplayer');
+          if (aplayers.length > 0) {
+            var lastAp = aplayers[aplayers.length - 1];
+            if (lastAp && lastAp.aplayer) {
+              ap = lastAp.aplayer;
+              clearInterval(poll);
+              bindAPlayer();
+            }
+          }
+          if (pollCount > 100) clearInterval(poll);
+        }, 200);
+
+        FocusApp.Store.set('music_prefs', { lastPlaylist: id, server: server, type: type, volume: volumeSlider.value });
+      }
+
+      function bindAPlayer() {
+        if (!ap) return;
+        ap.on('play', function () {
+          btnPlay.textContent = '⏸';
+          updateNowPlaying();
+        });
+        ap.on('pause', function () { btnPlay.textContent = '▶'; });
+        ap.on('listswitch', updateNowPlaying);
+
+        function updateNowPlaying() {
+          if (ap.list && ap.list.audios && ap.list.audios.length > 0) {
+            var cur = ap.list.audios[ap.list.index];
+            elNow.textContent = '🎵 ' + (cur.name || '未知') + ' - ' + (cur.artist || '');
+          }
+        }
+      }
+
+      btnPlay.addEventListener('click', function () {
+        if (ap) ap.toggle();
+      });
+      btnPrev.addEventListener('click', function () {
+        if (ap) ap.skipBack();
+      });
+      btnNext.addEventListener('click', function () {
+        if (ap) ap.skipForward();
+      });
+      volumeSlider.addEventListener('input', function () {
+        if (ap) ap.volume(parseInt(volumeSlider.value) / 100, true);
+        FocusApp.Store.set('music_prefs', Object.assign(savedPrefs, { volume: volumeSlider.value }));
+      });
+
+      // 预设按钮
+      document.querySelectorAll('.music-preset .pixel-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          loadPlaylist(btn.dataset.playlist, btn.dataset.server, btn.dataset.type);
+        });
+      });
+
+      // 自定义歌单
+      document.getElementById('btnLoadPlaylist').addEventListener('click', function () {
+        var id = document.getElementById('playlistInput').value.trim();
+        if (!id) return;
+        // 从URL中提取ID
+        var match = id.match(/id=(\d+)/);
+        if (match) id = match[1];
+        id = id.replace(/\D/g, '');
+        if (id) loadPlaylist(id, 'netease', 'playlist');
+      });
+
+      // 恢复上次歌单
+      if (savedPrefs.lastPlaylist) {
+        loadPlaylist(savedPrefs.lastPlaylist, savedPrefs.server, savedPrefs.type);
+      }
+    })();
+
+    /* ===== MiniWidget 悬浮小窗 ===== */
+    FocusApp.MiniWidget = (function () {
+      var widget = document.getElementById('miniWidget');
+      var miniTimerText = document.getElementById('miniTimerText');
+      var miniCat = document.getElementById('miniCat');
+      var miniStatus = document.getElementById('miniStatus');
+      var btnMinimize = document.getElementById('btnMinimize');
+
+      var isDragging = false;
+      var dragStartX, dragStartY, startLeft, startTop;
+      var dragMoved = false;
+
+      var savedPos = FocusApp.Store.get('widget_pos');
+
+      if (savedPos) {
+        widget.style.left = savedPos.left + 'px';
+        widget.style.top = savedPos.top + 'px';
+        widget.style.right = 'auto';
+        widget.style.bottom = 'auto';
+      }
+
+      function minimize() {
+        document.body.classList.add('minimized');
+        widget.classList.add('visible');
+      }
+
+      function expand() {
+        document.body.classList.remove('minimized');
+        widget.classList.remove('visible');
+      }
+
+      btnMinimize.addEventListener('click', minimize);
+
+      // 拖拽逻辑
+      function onStart(x, y) {
+        isDragging = true;
+        dragMoved = false;
+        dragStartX = x;
+        dragStartY = y;
+        var rect = widget.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        widget.classList.add('dragging');
+      }
+
+      function onMove(x, y) {
+        if (!isDragging) return;
+        var dx = x - dragStartX;
+        var dy = y - dragStartY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragMoved = true;
+        var newLeft = Math.max(0, Math.min(window.innerWidth - 72, startLeft + dx));
+        var newTop = Math.max(0, Math.min(window.innerHeight - 80, startTop + dy));
+        widget.style.left = newLeft + 'px';
+        widget.style.top = newTop + 'px';
+        widget.style.right = 'auto';
+        widget.style.bottom = 'auto';
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        widget.classList.remove('dragging');
+        if (!dragMoved) {
+          expand();
+        } else {
+          FocusApp.Store.set('widget_pos', {
+            left: parseInt(widget.style.left),
+            top: parseInt(widget.style.top)
+          });
+        }
+      }
+
+      widget.addEventListener('mousedown', function (e) { e.preventDefault(); onStart(e.clientX, e.clientY); });
+      document.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); });
+      document.addEventListener('mouseup', onEnd);
+
+      widget.addEventListener('touchstart', function (e) { e.preventDefault(); var t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: false });
+      document.addEventListener('touchmove', function (e) { if (isDragging) { var t = e.touches[0]; onMove(t.clientX, t.clientY); } });
+      document.addEventListener('touchend', onEnd);
+
+      // 监听计时器更新
+      FocusApp.Events.on('timer:tick', function (data) {
+        miniTimerText.textContent = data.short;
+      });
+
+      FocusApp.Events.on('timer:state', function (state) {
+        miniCat.className = 'mini-cat';
+        miniStatus.textContent = '点击展开';
+        if (state === 'running') {
+          miniCat.classList.add('breathing');
+          miniStatus.textContent = '专注中';
+        } else if (state === 'paused') {
+          miniCat.classList.add('sleeping');
+          miniStatus.textContent = '已暂停';
+        }
+      });
+    })();
+
+    /* ===== 设置面板功能 ===== */
+    (function () {
+      document.getElementById('btnNotifyPerm').addEventListener('click', function () {
+        if (!('Notification' in window)) {
+          alert('此浏览器不支持通知功能');
+          return;
+        }
+        Notification.requestPermission().then(function (perm) {
+          alert('通知权限：' + perm);
+        });
+      });
+
+      document.getElementById('btnExport').addEventListener('click', function () {
+        FocusApp.Store.exportAll();
+      });
+
+      var importFile = document.getElementById('importFile');
+      document.getElementById('btnImport').addEventListener('click', function () {
+        importFile.click();
+      });
+      importFile.addEventListener('change', function () {
+        if (!importFile.files.length) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          if (FocusApp.Store.importAll(e.target.result)) {
+            alert('数据导入成功！页面将刷新。');
+            window.location.reload();
+          } else {
+            alert('导入失败：文件格式不正确。');
+          }
+        };
+        reader.readAsText(importFile.files[0]);
+        importFile.value = '';
+      });
+    })();
+
+    /* ===== 气泡粒子 ===== */
+    (function () {
+      var container = document.getElementById('bubbles');
+      for (var i = 0; i < 14; i++) {
+        var b = document.createElement('div');
+        b.className = 'bubble';
+        b.style.left = Math.random() * 100 + '%';
+        b.style.animationDuration = 6 + Math.random() * 10 + 's';
+        b.style.animationDelay = Math.random() * 8 + 's';
+        container.appendChild(b);
+      }
+    })();
+
+  })();
+  </script>
+</body>
+</html>
 
