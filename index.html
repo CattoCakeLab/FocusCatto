@@ -280,6 +280,125 @@
       text-align: center; margin-top: 16px; font-size: 10px; color: var(--text-dim);
     }
 
+    /* ===== 专注统计面板 ===== */
+    .focus-stats {
+      margin-top: 16px;
+    }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+    }
+    .stat-card {
+      border: 2px solid var(--border); background: var(--bg-dark);
+      padding: 14px 12px; text-align: center;
+    }
+    .stat-card .stat-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 22px; color: var(--accent);
+      text-shadow: 0 0 10px var(--glow);
+      margin-bottom: 4px;
+    }
+    .stat-card .stat-label { font-size: 9px; color: var(--text-dim); }
+    .stat-card.cyan .stat-value { color: var(--accent2); text-shadow: 0 0 10px rgba(0,229,255,.4); }
+    .stat-card.cyan { border-color: var(--accent2); }
+
+    .week-bar-chart {
+      display: flex; align-items: flex-end; gap: 6px; height: 80px;
+      padding: 0 4px; margin-top: 8px;
+    }
+    .week-bar-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .week-bar {
+      width: 100%; background: var(--bg-dark); border: 1px solid var(--border);
+      position: relative; min-height: 4px; transition: height .4s;
+    }
+    .week-bar-fill {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--accent); transition: height .4s;
+      box-shadow: 0 0 6px var(--glow);
+    }
+    .week-bar-label { font-size: 8px; color: var(--text-dim); }
+    .week-bar-val { font-size: 7px; color: var(--accent); }
+
+    /* ===== DoneList 西部木制留言板 ===== */
+    .donelist-board {
+      margin-top: 16px; position: relative;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          #5c3a1e 0px, #5c3a1e 2px,
+          #7a4f2b 2px, #7a4f2b 28px,
+          #6b4423 28px, #6b4423 30px
+        );
+      border: 6px solid #3d2510;
+      border-top: 10px solid #4a2e14;
+      border-bottom: 10px solid #4a2e14;
+      padding: 16px 14px 14px;
+      box-shadow:
+        inset 0 0 20px rgba(0,0,0,.3),
+        0 4px 16px rgba(0,0,0,.4);
+      min-height: 100px;
+    }
+    .donelist-board::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0px, transparent 120px,
+        rgba(0,0,0,.06) 120px, rgba(0,0,0,.06) 122px
+      );
+      pointer-events: none;
+    }
+    /* 木板顶部钉子 */
+    .donelist-board::after {
+      content: '';
+      position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 8px; background: #888;
+      border-radius: 50%; border: 2px solid #666;
+      box-shadow: -60px 0 0 #888, 60px 0 0 #888, -60px 0 0 0 2px #666, 60px 0 0 0 2px #666;
+    }
+    .donelist-title {
+      font-size: 13px; color: #f5deb3; text-align: center;
+      text-shadow: 1px 1px 2px rgba(0,0,0,.5);
+      margin-bottom: 12px; letter-spacing: 2px;
+      border-bottom: 2px dashed rgba(245,222,179,.3);
+      padding-bottom: 8px;
+    }
+    .donelist-empty {
+      text-align: center; font-size: 10px; color: rgba(245,222,179,.5);
+      padding: 16px 0; font-style: italic;
+    }
+    .done-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 6px 8px; margin-bottom: 4px;
+      background: rgba(255,248,220,.08);
+      border-left: 3px solid #d4a056;
+      position: relative;
+      transition: all .3s;
+    }
+    .done-item::before {
+      content: '\2713'; color: #8fbc5a; font-size: 12px; flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .done-item .done-text {
+      font-size: 11px; color: #f5deb3; line-height: 1.6;
+      text-shadow: 1px 1px 1px rgba(0,0,0,.3);
+      flex: 1; word-break: break-all;
+    }
+    .done-item .done-time {
+      font-size: 8px; color: rgba(245,222,179,.4);
+      white-space: nowrap; flex-shrink: 0; margin-top: 3px;
+    }
+    /* 纸条钉住效果 —— 偶数项倾斜 */
+    .done-item:nth-child(even) {
+      transform: rotate(0.3deg);
+    }
+    .done-item:nth-child(odd) {
+      transform: rotate(-0.2deg);
+    }
+    .done-item:hover {
+      background: rgba(255,248,220,.14);
+    }
     /* ===== 任务打卡 ===== */
     .todo-input-row {
       display: flex; gap: 8px; margin-bottom: 16px;
@@ -651,6 +770,25 @@
         </div>
         <div class="timer-total" id="timerTotal">今日累计专注：0 分钟</div>
       </div>
+
+      <!-- 专注时间统计 -->
+      <div class="pixel-box" data-label="// FOCUS_STATS">
+        <div class="section-label">📊 专注统计</div>
+        <div class="focus-stats">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="statToday">0</div>
+              <div class="stat-label">今日专注 (分钟)</div>
+            </div>
+            <div class="stat-card cyan">
+              <div class="stat-value" id="statWeek">0</div>
+              <div class="stat-label">本周专注 (分钟)</div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;">本周每日专注：</div>
+          <div class="week-bar-chart" id="weekChart"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ===== TAB: 任务打卡 ===== -->
@@ -664,6 +802,14 @@
         <div class="todo-footer">
           <span id="todoCount">0 个任务</span>
           <button class="pixel-btn danger" id="btnClearDone" style="font-size:9px;padding:4px 10px;">清除已完成</button>
+        </div>
+      </div>
+
+      <!-- DoneList 西部木制留言板 -->
+      <div class="donelist-board" id="donelistBoard">
+        <div class="donelist-title">📋 TODAY'S DONE</div>
+        <div id="donelistItems">
+          <div class="donelist-empty">今天还没有完成的任务哦~ 加油喵!</div>
         </div>
       </div>
     </section>
@@ -997,13 +1143,40 @@
       var totalFocusToday = FocusApp.Store.get('todayFocus') || 0;
       var todayDate = new Date().toDateString();
 
+      // 周专注数据：{ weekStart: 'dateString', days: [0,0,0,0,0,0,0] }
+      var weekFocus = FocusApp.Store.get('weekFocus') || { weekStart: '', days: [0,0,0,0,0,0,0] };
+
+      // 获取本周一日期字符串
+      function getWeekStart() {
+        var d = new Date();
+        var day = d.getDay(); // 0=周日
+        var diff = day === 0 ? 6 : day - 1; // 调整到周一
+        d.setDate(d.getDate() - diff);
+        d.setHours(0,0,0,0);
+        return d.toDateString();
+      }
+
+      var currentWeekStart = getWeekStart();
+      var dayOfWeek = (function () { var d = new Date().getDay(); return d === 0 ? 6 : d - 1; })(); // 0=周一, 6=周日
+
+      // 检查周重置
+      if (weekFocus.weekStart !== currentWeekStart) {
+        weekFocus = { weekStart: currentWeekStart, days: [0,0,0,0,0,0,0] };
+        FocusApp.Store.set('weekFocus', weekFocus);
+      }
+
       // 检查日期重置
       var savedDate = FocusApp.Store.get('todayDate');
       if (savedDate !== todayDate) {
         totalFocusToday = 0;
         FocusApp.Store.set('todayDate', todayDate);
         FocusApp.Store.set('todayFocus', 0);
+        // 重新计算今天是周几
+        dayOfWeek = (function () { var d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
       }
+      // 同步今日数据到周数组
+      weekFocus.days[dayOfWeek] = totalFocusToday;
+      FocusApp.Store.set('weekFocus', weekFocus);
 
       var CHECKPOINTS = [
         { at: 20 * 60, type: 'eye',   icon: '👁️', title: '护眼时间',     msg: '看看远处，让眼睛休息 20 秒~', countdown: 20 },
@@ -1102,6 +1275,11 @@
         totalFocusToday += Math.floor(finalElapsed / 60);
         FocusApp.Store.set('todayFocus', totalFocusToday);
 
+        // 同步周数据
+        weekFocus.days[dayOfWeek] = totalFocusToday;
+        FocusApp.Store.set('weekFocus', weekFocus);
+        FocusApp.Events.emit('focus:updated', { today: totalFocusToday, week: weekFocus });
+
         state = 'idle';
         elapsed = 0;
         startTs = 0;
@@ -1155,7 +1333,14 @@
       updateBtns();
       updateTotalUI();
 
-      return { getState: function () { return state; } };
+      // 初始化时触发统计更新
+      FocusApp.Events.emit('focus:updated', { today: totalFocusToday, week: weekFocus });
+
+      return {
+        getState: function () { return state; },
+        getTodayFocus: function () { return totalFocusToday; },
+        getWeekFocus: function () { return weekFocus; }
+      };
     })();
 
     /* ===== TodoBoard 任务打卡 ===== */
@@ -1232,6 +1417,8 @@
           if (todo.completed) {
             li.classList.add('dropping');
             FocusApp.Notify.playSound('alarm'); // 小音效
+            // 同步到 DoneList
+            FocusApp.Events.emit('todo:completed', { text: todo.text, completedAt: todo.completedAt });
           }
           save();
           setTimeout(render, todo.completed ? 350 : 0);
@@ -1252,6 +1439,113 @@
       });
 
       render();
+    })();
+
+    /* ===== FocusStats 专注统计 ===== */
+    FocusApp.FocusStats = (function () {
+      var elStatToday = document.getElementById('statToday');
+      var elStatWeek = document.getElementById('statWeek');
+      var elWeekChart = document.getElementById('weekChart');
+      var DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
+
+      function update(data) {
+        var todayMin = (data && data.today) || FocusApp.Timer.getTodayFocus();
+        var week = (data && data.week) || FocusApp.Timer.getWeekFocus();
+        var days = week.days || [0,0,0,0,0,0,0];
+        var weekTotal = days.reduce(function (s, v) { return s + v; }, 0);
+
+        elStatToday.textContent = todayMin;
+        elStatWeek.textContent = weekTotal;
+
+        // 渲染柱状图
+        var maxVal = Math.max.apply(null, days.concat([1])); // 至少1避免除0
+        elWeekChart.innerHTML = '';
+        for (var i = 0; i < 7; i++) {
+          var pct = Math.round((days[i] / maxVal) * 100);
+          var item = document.createElement('div');
+          item.className = 'week-bar-item';
+          item.innerHTML =
+            '<div class="week-bar-val">' + days[i] + '</div>' +
+            '<div class="week-bar" style="height:' + Math.max(4, pct * 0.6) + 'px">' +
+            '<div class="week-bar-fill" style="height:100%"></div></div>' +
+            '<div class="week-bar-label">' + DAY_LABELS[i] + '</div>';
+          elWeekChart.appendChild(item);
+        }
+      }
+
+      FocusApp.Events.on('focus:updated', update);
+
+      // 初始渲染（延迟确保 Timer 已初始化）
+      setTimeout(function () { update(null); }, 100);
+
+      return { update: update };
+    })();
+
+    /* ===== DoneList 完成清单（西部木制留言板） ===== */
+    FocusApp.DoneList = (function () {
+      var elItems = document.getElementById('donelistItems');
+      var todayKey = new Date().toDateString();
+      var doneList = FocusApp.Store.get('donelist') || { date: '', items: [] };
+
+      // 日期重置：仅保留当天记录
+      if (doneList.date !== todayKey) {
+        doneList = { date: todayKey, items: [] };
+        FocusApp.Store.set('donelist', doneList);
+      }
+
+      function save() { FocusApp.Store.set('donelist', doneList); }
+
+      function escHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function fmtTime(ts) {
+        var d = new Date(ts);
+        var h = d.getHours();
+        var m = d.getMinutes();
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+      }
+
+      function render() {
+        elItems.innerHTML = '';
+        if (doneList.items.length === 0) {
+          elItems.innerHTML = '<div class="donelist-empty">今天还没有完成的任务哦~ 加油喵!</div>';
+          return;
+        }
+        // 按完成时间倒序
+        var sorted = doneList.items.slice().sort(function (a, b) { return b.completedAt - a.completedAt; });
+        sorted.forEach(function (item) {
+          var div = document.createElement('div');
+          div.className = 'done-item';
+          div.innerHTML =
+            '<span class="done-text">' + escHtml(item.text) + '</span>' +
+            '<span class="done-time">' + fmtTime(item.completedAt) + '</span>';
+          elItems.appendChild(div);
+        });
+      }
+
+      function addItem(text, completedAt) {
+        // 检查是否已存在（去重）
+        var exists = doneList.items.some(function (item) {
+          return item.text === text && Math.abs(item.completedAt - completedAt) < 1000;
+        });
+        if (exists) return;
+
+        doneList.items.push({ text: text, completedAt: completedAt });
+        save();
+        render();
+      }
+
+      // 监听 TodoBoard 完成事件
+      FocusApp.Events.on('todo:completed', function (data) {
+        addItem(data.text, data.completedAt);
+      });
+
+      render();
+
+      return { addItem: addItem, render: render };
     })();
 
     /* ===== Alarm 闹钟 ===== */
